@@ -12,7 +12,9 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Clipboard,
 } from "react-native";
+import SettingModel from "./SettingModel";
 
 export default function NavBar({
   onMenuPress,
@@ -476,101 +478,15 @@ export default function NavBar({
           </View>
         </View>
       </Modal>
+      <SettingModel
+        visible={settingsModelVisible}
+        onClose={() => setSettingsModelVisible(false)}
+        combinedGifts={combinedGifts}
+        refetchList={refetchList}
+      />
     </>
   );
 }
-
-function SettingModel({
-  visible,
-  onClose,
-  combinedGifts,
-  refetchList,
-  refetchMulti,
-}: {
-  visible?: boolean;
-  onClose?: () => void;
-  combinedGifts?: any[];
-  refetchList?: () => void;
-  refetchMulti?: () => void;
-}) {
-  const queryClient = useQueryClient();
-  const mutation = useMutation({
-    mutationFn: async (id: string) => {
-      const user: UserTypes = await storage.load({ key: "user" });
-      const removeUserInfo = {
-        userId: user.user._id,
-        toDeleteUserId: id,
-      };
-      try {
-        const res = await fetch(
-          "http://10.100.102.11:3000/user/deleteUserGiftList",
-          {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(removeUserInfo),
-          }
-        );
-        if (!res.ok) {
-          throw new Error("Failed to remove user");
-        }
-        const data = await res.json();
-        console.log("User removed successfully:", data);
-      } catch (error) {
-        console.error("Error removing user:", error);
-        throw error;
-      }
-    },
-  });
-  const handleRemoveUser = async (id: string) => {
-    await mutation.mutateAsync(id);
-    queryClient.invalidateQueries({ queryKey: ["listOfUsers"] });
-    queryClient.invalidateQueries({ queryKey: ["multiUserGifts"] });
-    if (refetchList) refetchList();
-    if (refetchMulti) refetchMulti();
-    alert(`Remove user: ${id}`);
-  };
-  return (
-    <Modal animationType="slide" transparent={true} visible={visible}>
-      <View style={styles.centeredView}>
-        <View style={styles.modalView}>
-          <Text style={styles.modalText}>Users</Text>
-          {combinedGifts?.length === 0 && (
-            <Text style={styles.noUsersText}>No users found.</Text>
-          )}
-          {combinedGifts?.map((gift, index) => (
-            <View key={index} style={styles.userCard}>
-              <Text style={styles.username}>{gift.username}</Text>
-              <TouchableOpacity
-                style={styles.removeBtn}
-                onPress={() => handleRemoveUser(gift.userId)}
-              >
-                <Text style={styles.removeBtnText}>Remove</Text>
-              </TouchableOpacity>
-            </View>
-          ))}
-          <View style={styles.buttonRow}>
-            <TouchableOpacity
-              style={[styles.actionBtn, { backgroundColor: "#ff4d4d" }]}
-              onPress={() => onClose && onClose()}
-            >
-              <Text style={styles.actionBtnText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionBtn, { backgroundColor: "#4CAF50" }]}
-              onPress={() => onClose && onClose()}
-            >
-              <Text style={styles.actionBtnText}>Confirm</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
-// Add these styles to your NavBar file
 const styles = StyleSheet.create({
   centeredView: {
     flex: 1,

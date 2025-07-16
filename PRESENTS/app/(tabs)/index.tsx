@@ -104,23 +104,45 @@ export default function HomeScreen() {
       return responses;
     },
   });
+  // Show loading state while profile or gifts are loading
+  if (isLoading || isMultiLoading) {
+    return (
+      <SafeAreaProvider>
+        <SafeAreaView>
+          <ThemedText
+            type="title"
+            style={{ marginTop: 40, textAlign: "center" }}
+          >
+            Loading...
+          </ThemedText>
+        </SafeAreaView>
+      </SafeAreaProvider>
+    );
+  }
+
+  // Redirect if profile is not loaded (user not logged in)
+  if (!profile) {
+    return <Redirect href="/(tabs)/login/login" />;
+  }
+
+  // Build combinedGifts only after profile is loaded
   const combinedGifts = [
     ...(gifts?.map((g: GiftType) => ({
       ...g,
       userId: profile?.user?._id,
+      username: profile?.user?.username || profile?.username || "Me",
       section: "My Gifts",
     })) || []),
     ...(multiGifts?.flatMap((entry) =>
       entry.gifts.map((g: GiftType) => ({
         ...g,
         userId: entry.userId,
+        username: g.username || "Unknown",
         section: "Other Gifts",
       }))
     ) || []),
   ];
-  if (!profile) {
-    return <Redirect href="/(tabs)/login/login" />;
-  }
+  console.log("Profile:", profile);
   console.log("Combined Gifts:", combinedGifts[0]?.username);
   return (
     <SafeAreaProvider>
@@ -170,14 +192,14 @@ export default function HomeScreen() {
               </Animated.View>
               <ThemedView style={styles.headerContent}>
                 <ThemedText type="title" style={styles.headerTitle}>
-                  Welcome {profile?.user?.username || profile?.username}
+                  Welcome{" "}
+                  {profile?.user?.username || profile?.username || "User"}
                 </ThemedText>
                 <HelloWave />
               </ThemedView>
             </>
           }
           renderItem={({ item, index }) => {
-            console.log("test", item);
             const showSectionHeader =
               index === 0 || item.section !== combinedGifts[index - 1]?.section;
 
@@ -193,7 +215,7 @@ export default function HomeScreen() {
                   style={styles.card}
                 >
                   <Text style={{ color: "#aaa", marginBottom: 6 }}>
-                    👤 User ID: {item.username}
+                    👤 User ID: {item.username || "Unknown"}
                   </Text>
 
                   <Collapsible title={item.giftName}>
